@@ -66,29 +66,24 @@ classdef OSCMatlabPCT
                 end
 
             end
-
-            % Create variables for the absolute pathnames of job-specific
-            % directories.  These will later be saved in a job-specific environment
-            % file for later use.  
             
-            today = datestr(date, 'mmddyy');
-
             absConfigDir = fullfile(configRoot, jobName);
             absScriptDir = fullfile(scriptRoot, jobName);
             absLogDir = fullfile(logRoot, jobName);
-            absJobDir = fullfile(jobRoot, sprintf('%s_%s', jobName, today));
+            absJobDir = fullfile(jobRoot, jobName);
 
             % Make sure this job hasn't already been configured
+            %NOTE: start here!
 
-            if exist(fullfile(absConfigDir), 'dir')
-                msg = 'A job by this name has already been configured. Would you like to configure a new job (C), or modify the existing configuration (M)?';
+            if exist(fullfile(configRoot, jobName), 'dir')
+                msg = 'A job by this name has already been configured. Would you like to configure a new job? (Y/N)';
                 exitLoop = false;
 
                 while ~exitLoop
                     answer = input(msg);
                     waitfor(answer);
 
-                    if strcmp(answer, 'C') || strcmp(answer, 'c')
+                    if strcmp(answer, 'Y') || strcmp(answer, 'y')
                         msg = 'Enter a unique name for your new job: ';
                         jobName = input(msg);
                         waitfor(jobName);
@@ -101,44 +96,39 @@ classdef OSCMatlabPCT
 
                         jobName = jobName{1};
                         
+                        % Create the needed job directories
+                        
                         absConfigDir = fullfile(configRoot, jobName);
                         absScriptDir = fullfile(scriptRoot, jobName);
                         absLogDir = fullfile(logRoot, jobName);
-                        absJobDir = fullfile(jobRoot, sprintf('%s_%s', jobName, today));
+                        absJobDir = fullfile(jobRoot, jobName);                     
                         
-                        % Create the needed job directories
                         mkdir(absConfigDir);
                         mkdir(absScriptDir);
                         mkdir(absLogDir);
                         mkdir(absJobDir);
                         
                         exitLoop = true;
-
-                    elseif strcmp(answer, 'M') || strcmp(answer, 'm')
-                        if exist(fullfile(absConfigDir, sprintf('%s_environment.mat', jobName)), 'file')
-                            load(fullfile(absConfigDir, sprintf('%s_environment.mat', jobName)));
-                            exitLoop = true;
-                        else
-                            msg = 'Oops, it looks like your previous configuration was corrupted.  Try cleaning up and then reconfiguring your job.';
-                            disp(msg)
-                            return;
-                        end    
-                    else
-                        msg = 'Are you sure you want to cancel?  (Y/N) Your configuration progress will be saved for later.';
+   
+                    elseif strcmp(answer, 'N') || strcmp(answer, 'n')
+                        msg = 'Are you sure you want to cancel?  (Y/N) Your configuration progress will be lost.';
                         answer = input(msg);
 
                         if strcmp(answer, 'Y') || strcmp(answer, 'y')
-                            save(fullfile(configRoot, 'global_environment'), 'pctConfigRoot', 'jobRoot', 'scriptRoot', 'logRoot', 'configRoot', 'cpRoot', 'logoData', 'logoMap', 'defaultJobNum');
-                            save(fullfile(absConfigDir, sprintf('%s_environment', jobName)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir');
                             exit_code = 0;
                             return;
                         else
-                            msg = 'Would you like to configure a new job, or modify the existing configuration?';
+                            msg = 'Would you like to configure a new job? (Y/N)';
                         end
+                    else
+                        disp('That wasn''t a valid choice... ')
+                        msg = 'Would you like to configure a new job? (Y/N)';
+                        
                     end
                 end
             else
                 % Create the needed job directories
+                
                 mkdir(absConfigDir);
                 mkdir(absScriptDir);
                 mkdir(absLogDir);
@@ -249,7 +239,7 @@ classdef OSCMatlabPCT
             while strcmp(answer, 'Y') || strcmp(answer, 'y')
                 % Note to self: start here 
                 absPath = input('Enter the absolute path to a job dependency on your local host: ');
-                [filePath, fileToAttach, ext] = fileparts(absPath);
+                [filePath, fileToAttach, ~] = fileparts(absPath);
 
                 % Combine variables to get full absolute path to script, then copy it to
                 % the script directory
@@ -267,9 +257,8 @@ classdef OSCMatlabPCT
             % Get the local and remote job storage locations for this particular job's
             % output log files, which will be generated by MATLAB at execution time.  
 
-            disp('Your job needs both a local storage location and a remote storage location on the remote host (Oakley).  If you need to create a new directory on OSC systems for this purpose, please log in and create it before continuing.');
+            disp('Your job needs a remote storage location on the remote host (Oakley).  If you need to create a new directory on OSC systems for this purpose, please log in and create it before continuing.');
 
-            localJobStoragePath = input('Enter the absolute path to a local directory for job log output: ');
             remoteJobStoragePath = input('Enter the absolute path to a remote directory for job log output: ');
 
             % Extract remoteJobStoragePath from the cell array
@@ -433,7 +422,7 @@ classdef OSCMatlabPCT
             % Save environment for later use
             jobsToDate(length(jobsToDate) + 1) = cellstr(jobNameCopy);
             save(fullfile(configRoot, 'global_environment'), 'pctConfigRoot', 'archiveRoot', 'jobRoot', 'scriptRoot', 'logRoot', 'configRoot', 'cpRoot', 'clusterProfile', 'jobsToDate');
-            save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir','entryFunctionName', 'entryFunctionFilePath', 'attachedFiles', 'localJobStoragePath', 'remoteJobStoragePath', 'isFunction');
+            save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir','entryFunctionName', 'entryFunctionFilePath', 'attachedFiles', 'remoteJobStoragePath', 'isFunction', 'runNum');
 
             if isFunction
                 save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)),'functionInputs', 'functionOutputs', '-append');
@@ -506,13 +495,17 @@ classdef OSCMatlabPCT
             title = 'Enter the following information for your job';
             msg = {sprintf('Enter a unique job name: \n(Hint: Try to use only numbers, characters, -, and _.)'), ...
                 sprintf('Enter a walltime: \n(Format: "hh:mm:ss")') ...
-                sprintf('Enter a PBS log option: \n(See "qsub" documentation ("-j" option) for all available options')...
+                sprintf('Enter a PBS log option: \n(See "qsub" documentation ("-j" flag) for all available options.)')...
                 sprintf('(Optional) Enter an email address in order to receive notifications about your job: ') ...
-                sprintf('(Optional): Enter a filespace allocation amount: ')}
+                sprintf('(Optional) Enter a filespace allocation amount: ')}
             defAns = {sprintf('Job%d', defaultJobNum), '01:00:00', 'oe', '', ''};
 
             jobInfo = inputdlg(msg, title, 1, defAns);
 
+            if isempty(jobInfo)
+                 return;    
+            end
+            
             jobName = jobInfo{1};
             walltime = jobInfo{2};
             logs = jobInfo{3};
@@ -523,24 +516,25 @@ classdef OSCMatlabPCT
             % directories.  These will later be saved in a job-specific environment
             % file for later use.
 
-            today = datestr(date, 'mmddyy');
             absConfigDir = fullfile(configRoot, jobName);
             absScriptDir = fullfile(scriptRoot, jobName);
             absLogDir = fullfile(logRoot, jobName);
-            absJobDir = fullfile(jobRoot, sprintf('%s_%s', jobName, today));
+            absJobDir = fullfile(jobRoot, jobName);
+            
+            runNum = 1;
 
             % Make sure this job hasn't already been configured.  If so, offer
             % the option to overwrite the previous configuration.
 
             if exist(fullfile(configRoot, jobName), 'dir')
-                msg = 'A job by this name has already been configured. Would you like to configure a new job, or modify the existing configuration?';
+                msg = 'A job by this name has already been configured. Would you like to configure a new job?';
                 exitLoop = false;
 
                 while ~exitLoop
-                    button = questdlg(msg, '', 'Configure New Job', 'Modify Existing', 'Cancel', 'Configure New Job');
+                    button = questdlg(msg, '', 'Yes', 'No', 'Yes');
                     waitfor(button);
 
-                    if strcmp(button, 'Configure New Job')
+                    if strcmp(button, 'Yes')
                         msg = 'Choose a unique name for your new job: ';
                         jobName = inputdlg(msg);
 
@@ -564,19 +558,11 @@ classdef OSCMatlabPCT
                         mkdir(absScriptDir);
                         mkdir(absLogDir);
                         mkdir(absJobDir);
+                        mkdir(absRunDir);
+                        mkdir(absLogRunDir);
 
                         exitLoop = true;
-
-                    elseif strcmp(button, 'Modify Existing')
-                        if exist(fullfile(absConfigDir, sprintf('%s_environment.mat', jobName)), 'file')
-                            load(fullfile(absConfigDir, sprintf('%s_environment.mat', jobName)));
-                            exitLoop = true;
-                        else
-                            msg = 'Oops, it looks like your previous configuration was corrupted.  Try cleaning up and then reconfiguring your job.';
-                            ok = errordlg(msg);
-                            waitfor(ok);
-                            return;
-                        end    
+   
                     else
                         msg = 'Are you sure you want to cancel?  Your configuration progress will be saved for later.';
                         button = questdlg(msg, '', 'Yes, Cancel', 'Nevermind', 'Nevermind');
@@ -711,10 +697,7 @@ classdef OSCMatlabPCT
             % Get the local and remote job storage locations for this particular job's
             % output log files, which will be generated by MATLAB at execution time.  
 
-            localJobStoragePath = uigetdir(pctConfigRoot, 'Select a local directory for job log output');
-            waitfor(localJobStoragePath);
-
-            msg1 = 'Your job also needs a remote storage location on the remote host (Oakley).  If you need to create a new directory for this purpose, please log on to OSC systems and create it before continuing.';
+            msg1 = 'Your job needs a remote storage location on the remote host (Oakley).  If you need to create a new directory for this purpose, please log on to OSC systems and create it before continuing.';
             warning = msgbox(msg1, '', 'warn');
             waitfor(warning);
 
@@ -840,7 +823,7 @@ classdef OSCMatlabPCT
             
             jobsToDate(length(jobsToDate) + 1) = cellstr(jobNameCopy);
             save(fullfile(configRoot, 'global_environment'), 'pctConfigRoot', 'archiveRoot', 'jobRoot', 'scriptRoot', 'logRoot', 'configRoot', 'cpRoot', 'clusterProfile', 'logoData', 'logoMap', 'defaultJobNum', 'jobsToDate');
-            save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir','entryFunctionName', 'entryFunctionFilePath', 'attachedFiles', 'localJobStoragePath', 'remoteJobStoragePath', 'isFunction');
+            save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir','entryFunctionName', 'entryFunctionFilePath', 'attachedFiles', 'remoteJobStoragePath', 'isFunction', 'runNum');
 
             if isFunction
                 save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)),'functionInputs', 'functionOutputs', '-append');
@@ -880,6 +863,14 @@ classdef OSCMatlabPCT
                 end
        
             end
+            
+            % Create subdirectories under jobs and logs for this particular
+            % run
+            
+            absRunDir = fullfile(absJobDir, sprintf('%s_%s', jobName, runNum));
+            absLogRunDir = fullfile(absLogDir, sprintf('%s_%s', jobName, runNum));
+            mkdir(absRunDir);
+            mkdir(absLogRunDir);
 
             % Use the cluster profile specified in the configuration to create a new
             % cluster object
@@ -889,14 +880,9 @@ classdef OSCMatlabPCT
             % Update the cluster profile so that the job logs are saved in the right
             % place on the local and remote hosts
 
-            newCluster.JobStorageLocation = localJobStoragePath;
-
-            if totalWorkers > 11
-                newCluster.CommunicatingSubmitFcn{3} = remoteJobStoragePath;
-
-            else
-                newCluster.IndependentSubmitFcn{3} = remoteJobStoragePath;
-            end
+            newCluster.JobStorageLocation = absLogRunDir;
+            newCluster.CommunicatingSubmitFcn{3} = remoteJobStoragePath;
+            newCluster.IndependentSubmitFcn{3} = remoteJobStoragePath;
 
             saveProfile(newCluster);
 
@@ -926,8 +912,8 @@ classdef OSCMatlabPCT
                 return;
             end 
 
-            newJob = eval(batchCmd);
-            jobData = getJobClusterData(newCluster, newJob);
+            newJob = eval(batchCmd)
+            jobData = getJobClusterData(newCluster, newJob)
 
             msg = sprintf('Job %s has been submitted!', jobData.ClusterJobIDs{1});
             disp(msg)
@@ -940,6 +926,7 @@ classdef OSCMatlabPCT
             disp(msg)
 
             results = fetchOutputs(newJob);
+            delete(newJob);
 
             % Extract just the data from results, and then save them in the job
             % directory
@@ -947,9 +934,12 @@ classdef OSCMatlabPCT
             results = results{1};
 
             outputFilename = strcat(jobName, '_Results');
-            outputDir = fullfile(absJobDir, outputFilename);
+            outputDir = fullfile(absRunDir, outputFilename);
 
             save(outputDir, 'results');
+            
+            runNum = runNum + 1;
+            save(fullfile(absConfigDir, sprintf('%s_environment', jobName)), 'runNum', '-append');
 
             msg = sprintf('Results file "%s" was saved in %s.mat.', outputFilename, outputDir);
             disp(msg)
@@ -992,59 +982,40 @@ classdef OSCMatlabPCT
                 % associated with the job(s) to delete
                 
                 if strcmp(jobName, 'all')
-                    dirsToRemove = [strsplit(ls(configRoot)), strsplit(ls(logRoot)), strsplit(ls(scriptRoot))];
-                    for count = 1:length(dirsToRemove)
-                        rmdir(dirsToRemove(count), 's');
-                    end
+                    dirsToRemove = cat(2, strcat('config/', strsplit(strjoin(jobsToDate))), strcat('logs/', strsplit(ls(logRoot))), strsplit(ls(scriptRoot)));
+                    pastJobs = strsplit(ls(jobRoot));
                 else
-                    rmdir(absConfigDir, 's');
-                    rmdir(absLogDir, 's');
-                    rmdir(absScriptDir, 's');
+                    dirsToRemove = { absConfigDir, absLogDir, absScriptDir }
+                    pastJobs = absJobDir;
                 end
-                    
+                
+                for count = 1:length(dirsToRemove)
+                    rmdir(dirsToRemove{count}, 's');
+                end
+
+                rmdir(absConfigDir, 's');
+                rmdir(absLogDir, 's');
+                rmdir(absScriptDir, 's');                  
                 
                 % Then archive job results files
-                
-                pastJobs = strsplit(ls(jobRoot));
-                
+    
                 if isempty(pastJobs)
                     disp('The "jobs" folder is empty... nothing to archive')
                     return;
                 else
-                    foundMatch = false;
-
                     for count = 1:length(pastJobs)
-                        if strcmp(jobName, 'all')
-                            % Archive the results files
-                            files = sprintf('%s/*', pastJobs(count));
-                            zipfile = sprintf('%s.zip', pastJobs(count));
-                            disp(sprintf('Archiving job %s into %s...', pastJobs(count), archiveRoot));
-                            zip(zipfile, files);
-                            movefile(fullfile(jobRoot, pastJobs(count), zipfile), fullfile(archiveRoot));
-                            
-                            % Remove all associated job directories
-                            rmdir(pastJobs(count), 's');
-                        else
-                            match = regexp(pastJobs(count), sprintf('%s*', jobName), 'match');
-                            if ~isempty(match)
-                                % Archive the results files
-                                foundMatch = true;
-                                files = sprintf('%s/*', pastJobs(count));
-                                zipfile = sprintf('%s.zip', pastJobs(count))
-                                disp(sprintf('Archiving job %s into %s...', pastJobs(count), archiveRoot));
-                                zip(zipfile, files);
-                                movefile(fullfile(jobRoot, pastJobs(count), zipfile), fullfile(archiveRoot));
-                                
-                                % Remove all associated job directories
-                                rmdir(pastJobs(count), 's');
-                            end
-                        end
+                        % Archive the results files
+                        files = sprintf('%s/*', cell2str(pastJobs(count)));
+                        zipfile = sprintf('%s.zip', cell2str(pastJobs(count)));
+                        disp(sprintf('Archiving job %s into %s...', cell2str(pastJobs(count)), archiveRoot));
+                        zip(zipfile, files);
+                        movefile(fullfile(jobRoot, cell2str(pastJobs(count)), zipfile), fullfile(archiveRoot));
+
+                        % Remove all associated job directories
+                        rmdir(pastJobs(count), 's');
+     
                     end
                     
-                    if ~foundMatch && ~strcmp(jobName, 'all')
-                        disp('No job by that name was found... nothing to archive')
-                        return;
-                    end
                 end
             end
             
