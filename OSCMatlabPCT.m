@@ -101,7 +101,8 @@ classdef OSCMatlabPCT
                         absConfigDir = fullfile(configRoot, jobName);
                         absScriptDir = fullfile(scriptRoot, jobName);
                         absLogDir = fullfile(logRoot, jobName);
-                        absJobDir = fullfile(jobRoot, jobName);                     
+                        absJobDir = fullfile(jobRoot, jobName); 
+                        absCpDir = fullfile(cpRoot, jobName);
                         
                         mkdir(absConfigDir);
                         mkdir(absScriptDir);
@@ -147,27 +148,25 @@ classdef OSCMatlabPCT
             % Check whether the appropriate cluster profile has been imported.
             % If not, import it.  
 
-            if ~exist('clusterProfile', 'var')
+            allProfiles = parallel.clusterProfiles;
+            [~, totalProfiles] = size(allProfiles);
 
-                allProfiles = parallel.clusterProfiles;
-                [~, totalProfiles] = size(allProfiles);
+            foundProfile = false;
 
-                foundProfile = false;
-
-                for index = 1:totalProfiles
-                    if strcmp(allProfiles{index}, 'genericNonSharedOakleyIntel')
-                        foundProfile = true;
-                        break;
-                    end
-                end
-
-                if ~foundProfile
-                    disp('Importing generic cluster profile for Oakley...')
-                    clusterProfile = parallel.importProfile(fullfile(cpRoot, 'genericNonSharedOakleyIntel.settings'));
-                else
-                    clusterProfile = 'genericNonSharedOakleyIntel';
+            for index = 1:totalProfiles
+                if strcmp(allProfiles{index}, 'genericNonSharedOakleyIntel')
+                    foundProfile = true;
+                    break;
                 end
             end
+
+            if ~foundProfile
+                disp('Importing generic cluster profile for Oakley...')
+                clusterProfile = parallel.importProfile(fullfile(cpRoot, 'genericNonSharedOakleyIntel.settings'));
+            else
+                clusterProfile = 'genericNonSharedOakleyIntel';
+            end
+
 
             % Here the user will import job dependencies into their scripts directory,
             % and a cell array of filenames of job dependencies will be created for saving in the job's
@@ -422,7 +421,7 @@ classdef OSCMatlabPCT
             % Save environment for later use
             jobsToDate(length(jobsToDate) + 1) = cellstr(jobNameCopy);
             save(fullfile(configRoot, 'global_environment'), 'pctConfigRoot', 'archiveRoot', 'jobRoot', 'scriptRoot', 'logRoot', 'configRoot', 'cpRoot', 'clusterProfile', 'jobsToDate');
-            save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir','entryFunctionName', 'entryFunctionFilePath', 'attachedFiles', 'remoteJobStoragePath', 'isFunction', 'runNum');
+            save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir', 'entryFunctionName', 'entryFunctionFilePath', 'attachedFiles', 'remoteJobStoragePath', 'isFunction', 'runNum');
 
             if isFunction
                 save(fullfile(absConfigDir, sprintf('%s_environment', jobNameCopy)),'functionInputs', 'functionOutputs', '-append');
@@ -558,22 +557,17 @@ classdef OSCMatlabPCT
                         mkdir(absScriptDir);
                         mkdir(absLogDir);
                         mkdir(absJobDir);
-                        mkdir(absRunDir);
-                        mkdir(absLogRunDir);
 
                         exitLoop = true;
    
                     else
-                        msg = 'Are you sure you want to cancel?  Your configuration progress will be saved for later.';
+                        msg = 'Are you sure you want to cancel?  Your configuration progress will be lost.';
                         button = questdlg(msg, '', 'Yes, Cancel', 'Nevermind', 'Nevermind');
 
                         if strcmp(button, 'Yes, Cancel')
-                            save(fullfile(configRoot, 'global_environment'), 'pctConfigRoot', 'jobRoot', 'scriptRoot', 'logRoot', 'configRoot', 'cpRoot', 'logoData', 'logoMap', 'defaultJobNum');
-                            save(fullfile(absConfigDir, sprintf('%s_environment', jobName)), 'absConfigDir', 'absJobDir', 'absLogDir', 'absScriptDir');
-                            exit_code = 0;
                             return;
                         else
-                            msg = 'Would you like to configure a new job, or modify the existing configuration?';
+                            msg = 'Would you like to configure a new job?';
                         end
                     end
                 end
@@ -596,31 +590,29 @@ classdef OSCMatlabPCT
 
             % Check whether the appropriate cluster profile has been imported.
             % If not, import it.  
+            
+            allProfiles = parallel.clusterProfiles;
+            [~, totalProfiles] = size(allProfiles);
 
-            if ~exist('clusterProfile', 'var')
+            foundProfile = false;
 
-                allProfiles = parallel.clusterProfiles;
-                [~, totalProfiles] = size(allProfiles);
-
-                foundProfile = false;
-
-                for index = 1:totalProfiles
-                    if strcmp(allProfiles{index}, 'genericNonSharedOakleyIntel')
-                        foundProfile = true;
-                        break;
-                    end
-                end
-
-                if ~foundProfile
-                    msg = sprintf('Importing generic cluster profile for Oakley...');
-                    message = msgbox(msg, '', 'warn');
-                    waitfor(message);
-
-                    clusterProfile = parallel.importProfile(fullfile(cpRoot, 'genericNonSharedOakleyIntel.settings'));
-                else
-                    clusterProfile = 'genericNonSharedOakleyIntel';
+            for index = 1:totalProfiles
+                if strcmp(allProfiles{index}, 'genericNonSharedOakleyIntel')
+                    foundProfile = true;
+                    break;
                 end
             end
+
+            if ~foundProfile
+                msg = sprintf('Importing generic cluster profile for Oakley...');
+                message = msgbox(msg, '', 'warn');
+                waitfor(message);
+
+                clusterProfile = parallel.importProfile(fullfile(cpRoot, 'genericNonSharedOakleyIntel.settings'));
+            else
+                clusterProfile = 'genericNonSharedOakleyIntel';
+            end
+
 
             % Here the user will import job dependencies into their scripts directory,
             % and a cell array of filenames of job dependencies will be created for saving in the job's
@@ -884,8 +876,10 @@ classdef OSCMatlabPCT
             newCluster.CommunicatingSubmitFcn{3} = remoteJobStoragePath;
             newCluster.IndependentSubmitFcn{3} = remoteJobStoragePath;
 
-            saveProfile(newCluster);
+            
+            %newClusterProf = sprintf('%s_%d_clusterProf', jobName, runNum);
 
+            %saveAsProfile(newCluster, newClusterProf);
 
             % Navigate to the job configuration directory
 
@@ -908,7 +902,7 @@ classdef OSCMatlabPCT
                     batchCmd = sprintf('%s', 'batch(newCluster, entryFunctionName, ''Matlabpool'', totalWorkers - 1, ''Workspace'', workspace, ''AdditionalPaths'', sprintf(''%s'', absScriptDir), ''AttachedFiles'', attachedFiles)');
                 end
             else
-                disp('Entry function file not found... try reconfiguring your job.')
+                disp('Entry function file not found... try reconfiguring your job.');
                 return;
             end 
 
@@ -916,14 +910,14 @@ classdef OSCMatlabPCT
             jobData = getJobClusterData(newCluster, newJob)
 
             msg = sprintf('Job %s has been submitted!', jobData.ClusterJobIDs{1});
-            disp(msg)
+            disp(msg);
 
             wait(newJob);
 
             % Get the output, and save
 
             msg = 'Gathering results...';
-            disp(msg)
+            disp(msg);
 
             results = fetchOutputs(newJob);
             delete(newJob);
@@ -1001,8 +995,9 @@ classdef OSCMatlabPCT
                 else
                     for count = 1:length(pastJobs)
                         % Archive the results files
+                        timestamp = datestr(clock, 'ddmmyy_HHMMSS');
                         files = sprintf('%s/*', pastJobs{count});
-                        zipfile = sprintf('%s.zip', pastJobs{count});
+                        zipfile = sprintf('%s_%s.zip', pastJobs{count}, timestamp);
                         disp(sprintf('Archiving job %s into %s...', pastJobs{count}, archiveRoot));
                         zip(zipfile, files);
                         movefile(zipfile, archiveRoot);
