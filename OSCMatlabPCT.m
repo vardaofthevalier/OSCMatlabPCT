@@ -985,7 +985,7 @@ classdef OSCMatlabPCT
                     dirsToRemove = cat(2, strcat('config/', strsplit(strjoin(jobsToDate))), strcat('logs/', strsplit(ls(logRoot))), strsplit(ls(scriptRoot)));
                     pastJobs = strsplit(ls(jobRoot));
                 else
-                    dirsToRemove = { absConfigDir, absLogDir, absScriptDir }
+                    dirsToRemove = { absConfigDir, absLogDir, absScriptDir };
                     pastJobs = {absJobDir};
                 end
                 
