@@ -4,9 +4,9 @@ classdef OSCMatlabPCT
         
         function [ exit_code ] = configureJob(jobName, walltime, logs, mail, filespace)
             if nargin == 0
-                exit_code = OSCMatlabPCT.configureDisplayOn()
+                exit_code = OSCMatlabPCT.configureDisplayOn();
             else
-                exit_code = OSCMatlabPCT.configureDisplayOff(jobName, walltime, logs, mail, filespace)
+                exit_code = OSCMatlabPCT.configureDisplayOff(jobName, walltime, logs, mail, filespace);
             end
         end
            
@@ -497,7 +497,7 @@ classdef OSCMatlabPCT
                 sprintf('Enter a walltime: \n(Format: "hh:mm:ss")') ...
                 sprintf('Enter a PBS log option: \n(See "qsub" documentation ("-j" flag) for all available options.)')...
                 sprintf('(Optional) Enter an email address in order to receive notifications about your job: ') ...
-                sprintf('(Optional) Enter a filespace allocation amount: ')}
+                sprintf('(Optional) Enter a filespace allocation amount: ')};
             defAns = {sprintf('Job%d', defaultJobNum), '01:00:00', 'oe', '', ''};
 
             jobInfo = inputdlg(msg, title, 1, defAns);
@@ -933,7 +933,7 @@ classdef OSCMatlabPCT
 
             results = results{1};
 
-            outputFilename = strcat(jobName, '_Results');
+            outputFilename = sprintf('%s_%d_Results', jobName, runNum);
             outputDir = fullfile(absRunDir, outputFilename);
 
             save(outputDir, 'results');
@@ -986,7 +986,7 @@ classdef OSCMatlabPCT
                     pastJobs = strsplit(ls(jobRoot));
                 else
                     dirsToRemove = { absConfigDir, absLogDir, absScriptDir }
-                    pastJobs = absJobDir;
+                    pastJobs = {absJobDir};
                 end
                 
                 for count = 1:length(dirsToRemove)
@@ -1001,14 +1001,14 @@ classdef OSCMatlabPCT
                 else
                     for count = 1:length(pastJobs)
                         % Archive the results files
-                        files = sprintf('%s/*', cell2str(pastJobs(count)));
-                        zipfile = sprintf('%s.zip', cell2str(pastJobs(count)));
-                        disp(sprintf('Archiving job %s into %s...', cell2str(pastJobs(count)), archiveRoot));
+                        files = sprintf('%s/*', pastJobs{count});
+                        zipfile = sprintf('%s.zip', pastJobs{count});
+                        disp(sprintf('Archiving job %s into %s...', pastJobs{count}, archiveRoot));
                         zip(zipfile, files);
-                        movefile(fullfile(jobRoot, cell2str(pastJobs(count)), zipfile), fullfile(archiveRoot));
+                        movefile(zipfile, archiveRoot);
 
                         % Remove all associated job directories
-                        rmdir(pastJobs(count), 's');
+                        rmdir(pastJobs{count}, 's');
      
                     end
                     
