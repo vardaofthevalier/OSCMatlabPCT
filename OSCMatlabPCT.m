@@ -867,8 +867,8 @@ classdef OSCMatlabPCT
             % Create subdirectories under jobs and logs for this particular
             % run
             
-            absRunDir = fullfile(absJobDir, sprintf('%s_%s', jobName, runNum));
-            absLogRunDir = fullfile(absLogDir, sprintf('%s_%s', jobName, runNum));
+            absRunDir = fullfile(absJobDir, sprintf('%s_%d', jobName, runNum));
+            absLogRunDir = fullfile(absLogDir, sprintf('%s_%d', jobName, runNum));
             mkdir(absRunDir);
             mkdir(absLogRunDir);
 
@@ -991,11 +991,7 @@ classdef OSCMatlabPCT
                 
                 for count = 1:length(dirsToRemove)
                     rmdir(dirsToRemove{count}, 's');
-                end
-
-                rmdir(absConfigDir, 's');
-                rmdir(absLogDir, 's');
-                rmdir(absScriptDir, 's');                  
+                end                 
                 
                 % Then archive job results files
     
