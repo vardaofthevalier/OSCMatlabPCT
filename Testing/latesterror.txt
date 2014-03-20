@@ -1,0 +1,93 @@
+You will now be asked to select job dependencies to attach to your job.
+Enter the absolute path to your job's entry function/script on your local host: C:/Users/cmiller/Documents/GitHub/OSCMatlabPCT/test_scripts/paralleltestv2.m
+Would you like to add another dependency to your job? (Y/N)y
+Enter the absolute path to a job dependency on your local host: C:/Users/cmiller/Documents/GitHub/OSCMatlabPCT/test_scripts/parsim.m
+Would you like to add another dependency to your job? (Y/N)y
+Enter the absolute path to a job dependency on your local host: C:/Users/cmiller/Documents/GitHub/OSCMatlabPCT/test_scripts/controllooppar.slx
+Would you like to add another dependency to your job? (Y/N)n
+Your job needs a remote storage location on the remote host (Oakley).  If you need to create a new directory on OSC systems for this purpose, please log in and create it before continuing.
+Enter the absolute path to a remote directory for job log output: /nfs/10/chrism/MATdir
+Job "testjob" was successfully configured.
+Would you like to launch your job now? (Y/N)y
+Choose a number of MATLAB workers for your job (Max: 32)5
+
+Caught-error breakpoint was hit in SettingsNodeFacade>iGetSingleCollapsedKey at line 767. The error was:
+
+Key CancelTaskFcn does not have value defined for level .
+
+767     value = settingsNode.(name);
+
+Caught-error breakpoint was hit in SettingsNodeFacade>iGetSingleCollapsedKey at line 767. The error was:
+
+Key LicenseNumber does not have value defined for level .
+
+
+Caught-error breakpoint was hit in SettingsNodeFacade>iGetSingleCollapsedKey at line 767. The error was:
+
+Key RequiresMathWorksHostedLicensing does not have value defined for level .
+
+
+Caught-error breakpoint was hit in SettingsNodeFacade>iGetSingleCollapsedKey at line 767. The error was:
+
+Key AdditionalPaths does not have value defined for level .
+
+
+Caught-error breakpoint was hit in SettingsNodeFacade>iGetSingleCollapsedKey at line 767. The error was:
+
+Key AttachedFiles does not have value defined for level .
+
+
+Caught-error breakpoint was hit in SettingsNodeFacade>iGetSingleCollapsedKey at line 767. The error was:
+
+Key AutoAttachFiles does not have value defined for level .
+
+
+Caught-error breakpoint was hit in AbstractBatchHelper>AbstractBatchHelper.parseFunctionInputs at line 229. The error was:
+
+Error using parallel.internal.cluster.AbstractBatchHelper/parseFunctionInputs (line 229)
+Input arguments parameter to batch must be a cell array of vector cell arrays, or a vector cell array.
+
+
+Caught-error breakpoint was hit in AbstractBatchHelper>AbstractBatchHelper.AbstractBatchHelper at line 157. The error was:
+
+Error using parallel.internal.cluster.AbstractBatchHelper/parseFunctionInputs (line 229)
+Input arguments parameter to batch must be a cell array of vector cell arrays, or a vector cell array.
+
+Error using parallel.Cluster/batch (line 116)
+Input arguments parameter to batch must be a cell array of vector cell arrays, or a vector cell array.
+
+Error in OSCMatlabPCT.launchJob (line 910)
+            newJob = eval(batchCmd)
+
+Error in OSCMatlabPCT.configureDisplayOff (line 430)
+               OSCMatlabPCT.launchJob(jobNameCopy, workers);
+
+Error in OSCMatlabPCT.configureJob (line 9)
+                exit_code = OSCMatlabPCT.configureDisplayOff(jobName, walltime, logs, mail, filespace);
+
+Error in ngtestrunner (line 5)
+ecode = OSCMatlabPCT.configureJob('testjob','00:30:00','oe','cmiller@osc.edu','8gb');
+ 
+K>> help eval
+ eval Execute string with MATLAB expression.
+    eval(EXPRESSION) evaluates the MATLAB code in the string EXPRESSION.
+ 
+    [OUTPUT1,...,OUTPUTN] = eval(EXPRESSION) returns output from EXPRESSION
+    in the specified variables.
+ 
+    Example: Interactively request the name of a matrix to plot.
+ 
+       expression = input('Enter the name of a matrix: ','s');
+       if (exist(expression,'var'))
+          plot(eval(expression))
+       end
+ 
+    See also feval, evalin, assignin, evalc.
+
+    Overloaded methods:
+       opaque/eval
+       classregtree/eval
+       sym/eval
+
+    Reference page in Help browser
+       doc eval

@@ -1,0 +1,4 @@
+C:/Users/cmiller/Documents/GitHub/OSCMatlabPCT/test_scripts/paralleltestv2.m
+C:/Users/cmiller/Documents/GitHub/OSCMatlabPCT/test_scripts/parsim.m
+C:/Users/cmiller/Documents/GitHub/OSCMatlabPCT/test_scripts/controllooppar.slx
+/nfs/10/chrism/MATdir
