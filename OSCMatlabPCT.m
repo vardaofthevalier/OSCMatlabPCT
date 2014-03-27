@@ -71,6 +71,8 @@ classdef OSCMatlabPCT
             absScriptDir = fullfile(scriptRoot, jobName);
             absLogDir = fullfile(logRoot, jobName);
             absJobDir = fullfile(jobRoot, jobName);
+            
+            runNum = 1;
 
             % Make sure this job hasn't already been configured
             %NOTE: start here!
@@ -103,6 +105,8 @@ classdef OSCMatlabPCT
                         absLogDir = fullfile(logRoot, jobName);
                         absJobDir = fullfile(jobRoot, jobName); 
                         absCpDir = fullfile(cpRoot, jobName);
+                        
+                        runNum = 1;
                         
                         mkdir(absConfigDir);
                         mkdir(absScriptDir);
@@ -176,7 +180,7 @@ classdef OSCMatlabPCT
 
             attachedFiles = {};
 
-            absPath = input('Enter the absolute path to your job''s entry function/script on your local host: ');
+            absPath = input('Enter the absolute path to your job''s entry function/script on your local host: ','s');
             [entryFunctionFilePath, entryFunctionName, ext] = fileparts(absPath);
 
             % Check to see if the user's input was valid
@@ -190,7 +194,7 @@ classdef OSCMatlabPCT
 
             while ~isValid
                 disp('You must select a valid entry function for your job')
-                absPath = input('Enter the absolute path to your job''s entry function/script on your local host: ');
+                absPath = input('Enter the absolute path to your job''s entry function/script on your local host: ','s');
                 [entryFunctionFilePath, entryFunctionName, ext] = fileparts(absPath);
 
                 % Check to see if the user's input was valid
@@ -203,10 +207,9 @@ classdef OSCMatlabPCT
             end
 
 
-            % Combine variables to get full absolute path to script, then copy it to
-            % the script directory
+            %Copy the script to the script directory.
 
-            copyfile(entryFunctionFilePath, absConfigDir);
+            copyfile(absPath, absConfigDir);
 
             % Reset the location of the entry function to the new location in the
             % config directory.
@@ -216,9 +219,10 @@ classdef OSCMatlabPCT
             % Determine if the entry point is a function or a script
 
             isFunction = true;
+            cd(absConfigDir)
 
             try
-                nargin(entryFunctionFilePath);
+                nargin(entryFunctionName);
             catch err
                 isFunction = false;
             end
@@ -230,26 +234,27 @@ classdef OSCMatlabPCT
 
             % Continue attaching job dependencies.  Job dependent files other than the
             % entry function will be copied to the job script directory.  
-
-            answer = input('Would you like to add another dependency to your job? (Y/N)');
+            cd(pctConfigRoot)
+            answer = input('Would you like to add another dependency to your job? (Y/N)','s');
 
             array_index = 1;
+            exts{array_index} = 'None';
 
             while strcmp(answer, 'Y') || strcmp(answer, 'y')
                 % Note to self: start here 
-                absPath = input('Enter the absolute path to a job dependency on your local host: ');
-                [filePath, fileToAttach, ~] = fileparts(absPath);
-
+                absPath = input('Enter the absolute path to a job dependency on your local host: ','s');
+                [filePath, fileToAttach, ext2] = fileparts(absPath);
+                exts{array_index} = ext2;
                 % Combine variables to get full absolute path to script, then copy it to
                 % the script directory
                 filePath = fullfile(filePath, fileToAttach);
-                copyfile(filePath, absScriptDir);
+                copyfile([filePath,exts{array_index}], absScriptDir);
 
                 % Add files located in the script directory to attachedFiles
                 attachedFiles{array_index} = fullfile(absScriptDir, fileToAttach);
                 array_index = array_index + 1;
 
-                answer = input('Would you like to add another dependency to your job? (Y/N)');
+                answer = input('Would you like to add another dependency to your job? (Y/N)','s');
 
             end   
 
@@ -258,11 +263,7 @@ classdef OSCMatlabPCT
 
             disp('Your job needs a remote storage location on the remote host (Oakley).  If you need to create a new directory on OSC systems for this purpose, please log in and create it before continuing.');
 
-            remoteJobStoragePath = input('Enter the absolute path to a remote directory for job log output: ');
-
-            % Extract remoteJobStoragePath from the cell array
-
-            remoteJobStoragePath = remoteJobStoragePath{1};
+            remoteJobStoragePath = input('Enter the absolute path to a remote directory for job log output: ','s');
 
             % Organize strings for inserting into configuration files
 
@@ -405,19 +406,6 @@ classdef OSCMatlabPCT
 
             cd(pctConfigRoot);
 
-            % Print a message stating that the modifications were successful
-
-            msg = sprintf('Job "%s" was successfully configured.', jobNameCopy);
-            disp(msg);
-
-            msg = sprintf('Would you like to launch your job now? (Y/N)');
-            launchOrSave = input(msg);
-
-            if strcmp(launchOrSave,'Y') || strcmp(launchOrSave,'y')
-               workers = input('Choose a number of MATLAB workers for your job (Max: 32)');
-               launchJob(jobName, workers);
-            end
-
             % Save environment for later use
             jobsToDate(length(jobsToDate) + 1) = cellstr(jobNameCopy);
             save(fullfile(configRoot, 'global_environment'), 'pctConfigRoot', 'archiveRoot', 'jobRoot', 'scriptRoot', 'logRoot', 'configRoot', 'cpRoot', 'clusterProfile', 'jobsToDate');
@@ -428,6 +416,19 @@ classdef OSCMatlabPCT
             end
 
             exit_code = 0;
+            
+                        % Print a message stating that the modifications were successful
+
+            msg = sprintf('Job "%s" was successfully configured.', jobNameCopy);
+            disp(msg);
+
+            msg = sprintf('Would you like to launch your job now? (Y/N)');
+            launchOrSave = input(msg,'s');
+
+            if strcmp(launchOrSave,'Y') || strcmp(launchOrSave,'y')
+               workers = input('Choose a number of MATLAB workers for your job (Max: 32)');
+               OSCMatlabPCT.launchJob(jobNameCopy, workers);
+            end
 
         end
         
@@ -452,7 +453,7 @@ classdef OSCMatlabPCT
                 jobRoot = fullfile(pwd, 'jobs');
                 cpRoot = fullfile(pwd, 'clusterProfiles');
                 logo = fullfile(configRoot, 'OSC_logo.png');
-                jobsToDate = {};
+                jobsToDate = {1};
                 
                 [logoData, logoMap] = imread(logo, 'png', 'BackgroundColor', [0.7 0.7 0.7]);
                 defaultJobNum = 1;
@@ -788,23 +789,6 @@ classdef OSCMatlabPCT
 
             cd(pctConfigRoot);
 
-            % Print a message stating that the modifications were successful
-
-            msg = sprintf('Job "%s" was successfully configured.', jobNameCopy);
-            message = msgbox(msg);
-            waitfor(message);
-
-            msg = sprintf('Would you like to launch your job now, or save it for later?');
-            message = questdlg(msg, 'Launch Job?', 'Launch now', 'Save for later', 'Save for later');
-            waitfor(message);
-
-            if strcmp(message,'Launch now')
-               msg = sprintf('Choose a number of MATLAB workers for your job (Max: 32)');
-               workers = inputdlg(msg);
-               waitfor(workers);
-               launchJob(jobName, workers);
-            end
-
             % Save environment for later use
             
             % If the default job name was used, increment the default job number for
@@ -822,6 +806,23 @@ classdef OSCMatlabPCT
             end
 
             exit_code = 0;
+            
+            % Print a message stating that the modifications were successful
+
+            msg = sprintf('Job "%s" was successfully configured.', jobNameCopy);
+            message = msgbox(msg);
+            waitfor(message);
+
+            msg = sprintf('Would you like to launch your job now, or save it for later?');
+            message = questdlg(msg, 'Launch Job?', 'Launch now', 'Save for later', 'Save for later');
+            waitfor(message);
+
+            if strcmp(message,'Launch now')
+               msg = sprintf('Choose a number of MATLAB workers for your job (Max: 32)');
+               workers = inputdlg(msg);
+               waitfor(workers);
+               launchJob(jobName, workers);
+            end
 
         end
         
